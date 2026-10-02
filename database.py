@@ -1,12 +1,10 @@
-import os
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
 
-# Load environment variables from .env
-load_dotenv()
+import settings
 
-MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME")
+# Atlas (mongodb+srv) needs an explicit CA bundle on some systems; a local mongod doesn't use TLS.
+_tls = {"tlsCAFile": certifi.where()} if settings.MONGO_URI.startswith("mongodb+srv://") else {}
 
-client = AsyncIOMotorClient(MONGO_URI)
-db = client[DB_NAME]
+client = AsyncIOMotorClient(settings.MONGO_URI, **_tls)
+db = client[settings.DB_NAME]

@@ -1,49 +1,34 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
-from models.book import BookItem, UpdateBookItem
+from fastapi import APIRouter, Depends, status
+
+from models.book import BookItem, BookResponse, UpdateBookItem
+from security import require_admin
 from services import book_service
 
 router = APIRouter(prefix="/books", tags=["Books"])
 
-# Create book
-@router.post("/", response_model=dict)
-async def create_book(book: BookItem):
-    book_id = await book_service.create_book(book)
-    return {"message": "Book created successfully", "id": book_id}
 
-# Get all books with category names
-@router.get("/", response_model=List[dict])
-async def list_books():
-    return await book_service.get_books_with_category()
+@router.get("/", response_model=list[BookResponse])
+async def list_books(category_id: str | None = None, q: str | None = None):
+    return await book_service.list_books(category_id, q)
 
-# Get single book by ID
-@router.get("/{book_id}", response_model=dict)
+
+@router.get("/{book_id}", response_model=BookResponse)
 async def get_book(book_id: str):
-    book = await book_service.get_book_by_id_with_category(book_id)
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return book
+    return await book_service.get_book(book_id)
 
-# Update book (all fields)
-@router.put("/{book_id}", response_model=dict)
-async def update_book(book_id: str, updated_book: UpdateBookItem):
-    updated = await book_service.update_book(book_id, updated_book)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return {"message": "Book updated successfully"}
 
-# Update only title
-@router.put("/{book_id}/title", response_model=dict)
-async def update_book_title(book_id: str, new_title: str):
-    updated = await book_service.update_book_title(book_id, new_title)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return {"message": "Book title updated successfully"}
+@router.post(
+    "/", response_model=BookResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)]
+)
+async def create_book(book: BookItem):
+    return await book_service.create_book(book)
 
-# Delete book
-@router.delete("/{book_id}", response_model=dict)
-async def delete_book(book_id: str):
-    deleted = await book_service.delete_book(book_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return {"message": "Book deleted successfully"}
+
+@router.put("/{book_id}", response_model=BookResponse, dependencies=[Depends(require_admin)])
+async def update_book(book_id: str, changes: UpdateBookItem):
+    return await book_service.update_book(book_id, changes)
+
+
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
+async def delete_book(book_id: str) -> None:
+    await book_service.delete_book(book_id)

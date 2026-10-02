@@ -1,38 +1,40 @@
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
-# Input model for signup
-class AdminCreateSchema(BaseModel):
-    name: str
-    email: EmailStr
-    password: str = Field(..., min_length=6)
+from pydantic import BaseModel, EmailStr, Field
 
-# Input model for login
+
+class AdminCreateSchema(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+
 class AdminLoginSchema(BaseModel):
     email: EmailStr
     password: str
 
-# Output model for responses
+
 class AdminResponseSchema(BaseModel):
     id: str
     name: str
     email: EmailStr
     created_at: datetime
 
-    class Config:
-        orm_mode = True
 
 class TokenSchema(BaseModel):
-    access_token: Optional[str] = None
+    access_token: str
+    token_type: str = "bearer"
     id: str
     name: str
-    email : str
+    email: str
+
 
 class UpdateAdmin(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1)
     email: Optional[EmailStr] = None
 
+
 class UpdateAdminPassword(BaseModel):
-    old_password: str = Field(..., min_length=6)
-    new_password: str = Field(..., min_length=6)
+    old_password: str
+    new_password: str = Field(..., min_length=8)
